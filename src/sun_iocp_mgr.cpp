@@ -1,5 +1,5 @@
 
-#include "sun_iocp.h"
+#include "sun_iocp_mgr.h"
 
 #include <WinSock2.h>
 #include <cstdio>
@@ -11,15 +11,15 @@
 using namespace std;
 
 
-sun_iocp::sun_iocp()
+sun_iocp_mgr::sun_iocp_mgr()
 {
 }
 
-sun_iocp::~sun_iocp()
+sun_iocp_mgr::~sun_iocp_mgr()
 {
 }
 
-int sun_iocp::start_service()
+int32_t sun_iocp_mgr::start_service()
 {
 	// 创建完成端口
 	m_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
@@ -36,7 +36,7 @@ int sun_iocp::start_service()
 	return 0;
 }
 
-int sun_iocp::stop_service()
+int32_t sun_iocp_mgr::stop_service()
 {
 	m_run_flag = false;
 
@@ -50,24 +50,41 @@ int sun_iocp::stop_service()
 	return 0;
 }
 
-int sun_iocp::bind_iocp(uint64_t key)
+int32_t sun_iocp_mgr::iocp_bind(sun_socket_st* p_link)
 {
 	// 从资源管理获取link资源信息
 	// 绑定到完成端口
-	// CreateIoCompletionPort((HANDLE)sock, m_h_iocp, (ULONG_PTR)1, 0);
+	if (!CreateIoCompletionPort((HANDLE)(p_link->sock), m_h_iocp,
+		(ULONG_PTR)(p_link->key), 0))
+	{
+		return -1;
+	}
+
+	WSABUF	wsabuf;
+	DWORD	size = 0;
+	DWORD	flags = 0;
+
+	wsabuf.len = p_link->rx_head.bufsz;
+	wsabuf.buf = (char*)p_link->rx_head.buffer;
+	memset(&(p_link->rx_head.iocp_arg), 0, sizeof(p_link->rx_head.iocp_arg));
+
+	if (WSARecv(p_link->sock, &wsabuf, 1, &size, &flags, (OVERLAPPED*)(&p_link->rx_head), NULL) 
+		&& GetLastError() != WSA_IO_PENDING)
+	{
+		return -1;
+	}
+	
 	return 0;
 }
 
-
-
-int sun_iocp::get_thread_work_num(void)
+int32_t sun_iocp_mgr::get_thread_work_num(void)
 {
 	SYSTEM_INFO sysTemInfo;
 	GetSystemInfo(&sysTemInfo);
-	return (int)(sysTemInfo.dwNumberOfProcessors << 1);
+	return (int32_t)(sysTemInfo.dwNumberOfProcessors << 1);
 }
 
-int sun_iocp::create_thread_work(void)
+int32_t sun_iocp_mgr::create_thread_work(void)
 {
 	auto num = get_thread_work_num();
 	for (auto i = 0; i < num; i++)
@@ -77,12 +94,12 @@ int sun_iocp::create_thread_work(void)
 	return 0;
 }
 
-int sun_iocp::th_iocp_work(sun_iocp* ptr)
+int32_t sun_iocp_mgr::th_iocp_work(sun_iocp_mgr* ptr)
 {
 	return ptr->do_iocp_work();
 }
 
-int sun_iocp::do_iocp_work(void)
+int32_t sun_iocp_mgr::do_iocp_work(void)
 {
 	DWORD				size;
 	ULONG_PTR			key;
@@ -124,22 +141,22 @@ int sun_iocp::do_iocp_work(void)
 }
 
 // 归还一个连接资源
-void sun_iocp::free_link(uint64_t key)
+void sun_iocp_mgr::free_link(uint64_t key)
 {
 
 }
 // 软关闭
-void sun_iocp::close_link(uint64_t key)
+void sun_iocp_mgr::close_link(uint64_t key)
 {
 
 }
 
-int sun_iocp::send_done(uint64_t key, uint64_t size)
+int32_t sun_iocp_mgr::send_done(uint64_t key, uint64_t size)
 {
 	return 0;
 }
 
-int sun_iocp::recv_done(uint64_t key, uint64_t size)
+int32_t sun_iocp_mgr::recv_done(uint64_t key, uint64_t size)
 {
 	return 0;
 }

@@ -11,7 +11,7 @@
 using namespace std;
 
 
-int sun_socket::sock_env_start(void)
+int32_t sun_socket::sock_env_start(void)
 {
 	int			ret{ 0 };
 	WSADATA		data;
@@ -24,12 +24,12 @@ int sun_socket::sock_env_start(void)
 	return ret;
 }
 
-int sun_socket::sock_env_clean(void)
+int32_t sun_socket::sock_env_clean(void)
 {
 	return WSACleanup();
 }
 
-static int th_iocp_work(sun_socket * ptr)
+static int32_t th_iocp_work(sun_socket * ptr)
 {
 
 }

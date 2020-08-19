@@ -12,8 +12,8 @@
 class sun_socket
 {
 public:
-	static int sock_env_start(void);
-	static int sock_env_clean(void);
+	static int32_t sock_env_start(void);
+	static int32_t sock_env_clean(void);
 
 
 
