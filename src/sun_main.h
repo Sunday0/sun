@@ -19,4 +19,7 @@ public:
 	sun_server();
 	~sun_server();
 	int32_t run(void);
+
+private:
+	int32_t stop(void);
 };

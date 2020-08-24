@@ -1,5 +1,5 @@
 #include "sun_link_mgr.h"
-#include "sun_iocp.h"
+#include "sun_iocp_mgr.h"
 
 sun_link_mgr::sun_link_mgr()
 {
@@ -8,46 +8,6 @@ sun_link_mgr::sun_link_mgr()
 
 sun_link_mgr::~sun_link_mgr()
 {
-}
-
-int32_t sun_link_mgr::create_listen_socket(void)
-{
-	// 创建监听socket
-	int32_t sock = (int32_t)WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-	
-	if (sock == INVALID_SOCKET)
-	{
-		std::printf("start_service WSASocket 调用失败");
-		return -1;
-	}
-
-	return 0;
-}
-
-int32_t sun_link_mgr::bind_and_listen(int32_t sock)
-{
-	// 设置协议类型
-	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_addr.S_un.S_addr = INADDR_ANY;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(PORT);
-
-	// 绑定监听端口
-	if (SOCKET_ERROR == bind(sock, (const sockaddr*)(&addr), sizeof(addr)))
-	{
-		std::printf("start_service bind 调用失败");
-		return -1;
-	}
-
-	// 启用监听功能
-	if (SOCKET_ERROR == listen(sock, 100))
-	{
-		std::printf("start_service listen 调用失败");
-		return -1;
-	}
-
-	return 0;
 }
 
 // 申请资源对象
@@ -150,7 +110,7 @@ int32_t sun_link_mgr::initialize(void)
 
 		m_link_arr[i].key = i;
 		m_link_arr[i].seq = 0;
-		m_link_arr[i].link_no = ((uint32_t)i) << 16 | m_link_arr[i].seq;
+		m_link_arr[i].link_no = ((uint32_t)m_link_arr[i].seq) << 16 | i;
 
 		m_link_arr[i].slt_flgs = 1;
 

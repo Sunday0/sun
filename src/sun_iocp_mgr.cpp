@@ -86,17 +86,16 @@ int32_t sun_iocp_mgr::get_thread_work_num(void)
 
 int32_t sun_iocp_mgr::create_thread_work(void)
 {
+	auto fun = [this]() {
+		do_iocp_work();
+	};
+
 	auto num = get_thread_work_num();
 	for (auto i = 0; i < num; i++)
 	{
-		m_list_th_work.push_back(new thread(th_iocp_work, this));
+		m_list_th_work.push_back(new thread(fun));
 	}
 	return 0;
-}
-
-int32_t sun_iocp_mgr::th_iocp_work(sun_iocp_mgr* ptr)
-{
-	return ptr->do_iocp_work();
 }
 
 int32_t sun_iocp_mgr::do_iocp_work(void)
@@ -107,9 +106,26 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 
 	while (m_run_flag)
 	{
-		if (GetQueuedCompletionStatus(m_h_iocp, &size, &key,
-			(OVERLAPPED**)&link, 1000) != 0) {
-			if (size == 0)
+		link = nullptr;
+		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (OVERLAPPED**)&link, 1000))
+		{
+			// 连接处理
+			switch (link->lnk_flgs)
+			{
+			case 0:
+				accept_link(key);
+				break;
+			case 1:
+				recv_done(key, size);
+				break;
+			case 2:
+				send_done(key, size);
+				break;
+			default:
+				break;
+			}
+
+			/*if (size == 0)
 			{
 				if (link->lnk_flgs)
 					close_link(key);
@@ -122,7 +138,7 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 					send_done(key, size);
 				else
 					recv_done(key, size);
-			}
+			}*/
 		}
 		else 
 		{
@@ -136,6 +152,14 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 			}
 		}
 	}
+
+	return 0;
+}
+
+int32_t sun_iocp_mgr::accept_link(uint64_t key)
+{
+
+	//WSAAccept();
 
 	return 0;
 }

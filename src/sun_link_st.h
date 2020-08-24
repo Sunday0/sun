@@ -33,7 +33,7 @@
 struct sun_link {
 	OVERLAPPED				iocp_arg;								/*	参数*/
 	/*
-	 *	发送/接收 标志		0:接收 1:发送
+	 *	操作 标志			0:接收连接  1:接收 2:发送 
 	 */
 	uint32_t				lnk_flgs;								/*	标志*/
 

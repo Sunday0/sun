@@ -17,10 +17,6 @@ private:
 	bool					m_run_flag{ false };						// 服务标志
 	HANDLE					m_h_iocp{ nullptr };						// 完成端口句柄
 
-//	uint8_t					m_ip_type{ IPV4 };							// 支持的IP类型，v4 v6
-//	uint16_t				m_port{ 20000 };							// 监听端口
-//	int						m_max_client{ 10000 };						// 最大客户端数量
-
 	std::list<std::thread*>	m_list_th_work;								// 工作线程list
 
 public:
@@ -32,7 +28,6 @@ public:
 
 	int32_t iocp_bind(sun_socket_st* p_link);
 private:
-	static int32_t th_iocp_work(sun_iocp_mgr* ptr);
 
 	int32_t do_iocp_work(void);
 
@@ -44,7 +39,7 @@ private:
 	int32_t create_thread_work(void);
 
 	
-
+	int32_t accept_link(uint64_t key);
 	// 关闭 
 	void free_link(uint64_t key);
 	// 软关闭

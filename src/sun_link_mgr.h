@@ -24,12 +24,6 @@ public:
 	sun_link_mgr();
 	~sun_link_mgr();
 
-	// 创建 监听 socket
-	int32_t create_listen_socket(void);
-
-	// 绑定监听
-	int32_t bind_and_listen(int32_t sock);
-
 	// 申请资源对象
 	sun_socket_st * alloc_link();
 
@@ -38,7 +32,8 @@ public:
 
 	// 判断资源对象
 	bool is_invalid_link(uint32_t link_no);
-private:
+
+public:
 	int32_t initialize(void);
 	int32_t destroy(void);
 };
