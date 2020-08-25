@@ -24,17 +24,11 @@ sun_server::~sun_server()
 
 int32_t sun_server::run()
 {
-	m_iocp_mgr.start_service();
-
-	auto link = m_link_mgr.alloc_link();
-	link->sock = m_link_mgr.create_listen_socket();
-	m_iocp_mgr.iocp_bind(link);
-
-	while (1)
-	{
-		sun_sleep(1000);
-		// 统计，处理命令等
-	}
+	m_link_mgr.initialize();
+	m_iocp_mgr.start_service(&m_link_mgr);
+	m_lsn_mgr.start_listen(&m_iocp_mgr, &m_link_mgr);
+	
+	m_lsn_mgr.do_listen_work();
 
 	return 0;
 }

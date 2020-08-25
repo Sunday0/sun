@@ -3,7 +3,17 @@
 
 sun_link_mgr::sun_link_mgr()
 {
-	initialize();
+	m_lock_arr = nullptr;
+	m_link_arr = nullptr;
+	m_res_arr = nullptr;
+
+	//发送队列, 后面用chunk 管理 固定长度
+	//list<>						
+
+	// 资源 空闲数量 资源读写偏移
+	m_res_idles = 0;
+	m_res_r = 0;
+	m_res_w = 0;
 }
 
 sun_link_mgr::~sun_link_mgr()
@@ -19,7 +29,7 @@ sun_socket_st* sun_link_mgr::alloc_link()
 	if (m_res_idles != 0)
 	{
 		ptr = &m_link_arr[m_res_r];
-		
+		ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
 		m_res_idles--;
 		m_res_r++;
 		if (m_res_r == MAX_LINKS)
@@ -83,6 +93,11 @@ bool sun_link_mgr::is_invalid_link(uint32_t link_no)
 	return true;
 }
 
+sun_socket_st* sun_link_mgr::get_link_ptr(int32_t idx)
+{
+	return m_link_arr + idx;
+}
+
 int32_t sun_link_mgr::initialize(void)
 {
 	std::lock_guard<std::mutex> lck(m_lock_mgr);
@@ -108,7 +123,7 @@ int32_t sun_link_mgr::initialize(void)
 		m_link_arr[i].sock = -1;
 		m_link_arr[i].session_id = 0;
 
-		m_link_arr[i].key = i;
+		m_link_arr[i].idx = i;
 		m_link_arr[i].seq = 0;
 		m_link_arr[i].link_no = ((uint32_t)m_link_arr[i].seq) << 16 | i;
 

@@ -21,14 +21,13 @@ private:
 	sun_iocp_mgr*				m_p_iocp{ nullptr };
 	sun_link_mgr*				m_p_link{ nullptr };
 public:
-	sun_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link);
+	sun_listen();
 	~sun_listen();
-	int32_t start_listen();
+	int32_t start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link);
 	int32_t stop_listen();
-
+	int32_t do_listen_work(void);
 private:
 	int32_t init_listen(void);
-	int32_t do_listen_work(void);
 	int32_t do_accept(int32_t s);
 	int32_t sk_create(int32_t af);
 	int32_t sk_bind(int32_t af, int32_t s, uint16_t port);

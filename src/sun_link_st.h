@@ -56,13 +56,13 @@ struct sun_socket_st {
 	int32_t					sock;									/*	SOCKET描述符*/
 	uint32_t				session_id;								/*	当前会话ID*/
 	/*
-	 * link_no = seq<<16 | key
+	 * link_no = seq<<16 | idx
 	 */
-	uint32_t				link_no;								/*	连接号*/
+	uint32_t				link_no;								/*	连接号 作为 iocp 的 key*/
 	/*
 	 * key 资源编号
 	 */
-	uint16_t				key;									/*	KEY值*/
+	uint16_t				idx;									/*	idx值*/
 	/*
 	 * 资源使用次数
 	 */

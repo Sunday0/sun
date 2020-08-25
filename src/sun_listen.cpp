@@ -2,11 +2,11 @@
 
 #include <WinSock2.h>
 #include <algorithm>
+#include <chrono>
 #include "sun_link_mgr.h"
 #include "sun_iocp_mgr.h"
 
-sun_listen::sun_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link):
-	m_p_iocp(p_iocp), m_p_link(p_link)
+sun_listen::sun_listen()
 {
 }
 
@@ -15,8 +15,11 @@ sun_listen::~sun_listen()
 	
 }
 
-int32_t sun_listen::start_listen()
+int32_t sun_listen::start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link)
 {
+	m_p_iocp = p_iocp;
+	m_p_link = p_link;
+
 	// 创建监听socket
 	if (0 != create_listen_socket())
 	{
@@ -25,7 +28,7 @@ int32_t sun_listen::start_listen()
 
 
 	// 启动监听线程
-	m_th_lsn = std::move(std::thread([this() { do_listen_work ()}]));
+	//m_th_lsn = std::move(std::thread([this() { do_listen_work ()}]));
 }
 
 int32_t sun_listen::stop_listen()
@@ -33,7 +36,7 @@ int32_t sun_listen::stop_listen()
 	// 关闭监听socket
 
 	// 推出监听线程
-	m_th_lsn.join();
+	//m_th_lsn.join();
 
 }
 
@@ -83,11 +86,18 @@ int32_t sun_listen::do_listen_work(void)
 			continue;
 		}
 
-		for (auto var in m_lsn)
+		for (auto var : m_lsn)
 		{
-			if (FD_ISSET(var, &_rdfds))
+			if (!FD_ISSET(var, &_rdfds))
 			{
-				do_accept((int32_t)var);
+				continue;
+			}
+
+			auto linkno = do_accept((int32_t)var);
+			if (0 > linkno)
+			{
+				// join iocp
+				m_p_iocp->iocp_bind();
 			}
 		}
 	}
@@ -102,12 +112,28 @@ int32_t sun_listen::do_accept(int32_t s)
 
 	auto client = (int32_t)accept(s, (struct sockaddr*)&addr, &addr_len);
 
-	if (client != INVALID_SOCKET)
+	if (client < 0)
 	{
-
+		return -1;
 	}
 
-	return 0;
+	auto ptr = m_p_link->alloc_link();
+	if (nullptr == ptr)
+	{
+		// 连接数已达上限
+		closesocket(client);
+		return -1;
+	}
+
+	auto tmp_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+	ptr->rx_head.mtime = tmp_time;
+	ptr->tx_head.mtime = tmp_time;
+	ptr->sock = client;
+	ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
+	ptr->seq++;
+	ptr->slt_flgs = 0;
+	return ptr->idx;
 }
 
 int32_t sun_listen::sk_create(int32_t af)

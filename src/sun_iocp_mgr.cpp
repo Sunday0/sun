@@ -7,6 +7,7 @@
 #include <array>
 
 #include "sun_link_st.h"
+#include "sun_link_mgr.h"
 
 using namespace std;
 
@@ -19,8 +20,10 @@ sun_iocp_mgr::~sun_iocp_mgr()
 {
 }
 
-int32_t sun_iocp_mgr::start_service()
+int32_t sun_iocp_mgr::start_service(sun_link_mgr* p_link)
 {
+	m_p_link = p_link;
+
 	// 创建完成端口
 	m_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (NULL == m_h_iocp)
@@ -50,31 +53,42 @@ int32_t sun_iocp_mgr::stop_service()
 	return 0;
 }
 
-int32_t sun_iocp_mgr::iocp_bind(sun_socket_st* p_link)
+int32_t sun_iocp_mgr::iocp_bind(int32_t idx)
 {
+	sun_socket_st* p_link = m_p_link->get_link_ptr(idx);
+
 	// 从资源管理获取link资源信息
 	// 绑定到完成端口
-	if (!CreateIoCompletionPort((HANDLE)(p_link->sock), m_h_iocp,
-		(ULONG_PTR)(p_link->key), 0))
+	if (!CreateIoCompletionPort((HANDLE)(p_link->sock), m_h_iocp, (ULONG_PTR)(p_link->link_no), 0))
 	{
 		return -1;
 	}
 
+	return iocp_recv(p_link);
+}
+
+int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
+{
 	WSABUF	wsabuf;
 	DWORD	size = 0;
 	DWORD	flags = 0;
 
-	wsabuf.len = p_link->rx_head.bufsz;
-	wsabuf.buf = (char*)p_link->rx_head.buffer;
-	memset(&(p_link->rx_head.iocp_arg), 0, sizeof(p_link->rx_head.iocp_arg));
+	wsabuf.len = MAX_BUFFER - p_socket->rx_head.bufsz;
+	wsabuf.buf = (char*)p_socket->rx_head.buffer;
+	memset(&(p_socket->rx_head.iocp_arg), 0, sizeof(p_socket->rx_head.iocp_arg));
 
-	if (WSARecv(p_link->sock, &wsabuf, 1, &size, &flags, (OVERLAPPED*)(&p_link->rx_head), NULL) 
+	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx_head.iocp_arg, NULL)
 		&& GetLastError() != WSA_IO_PENDING)
 	{
 		return -1;
 	}
-	
+
 	return 0;
+}
+
+int32_t sun_iocp_mgr::iocp_send(int32_t idx)
+{
+
 }
 
 int32_t sun_iocp_mgr::get_thread_work_num(void)
