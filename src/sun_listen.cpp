@@ -8,6 +8,7 @@
 
 sun_listen::sun_listen()
 {
+
 }
 
 sun_listen::~sun_listen()
@@ -29,6 +30,8 @@ int32_t sun_listen::start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link)
 
 	// 启动监听线程
 	//m_th_lsn = std::move(std::thread([this() { do_listen_work ()}]));
+
+	return 0;
 }
 
 int32_t sun_listen::stop_listen()
@@ -37,6 +40,8 @@ int32_t sun_listen::stop_listen()
 
 	// 推出监听线程
 	//m_th_lsn.join();
+
+	return 0;
 
 }
 
@@ -73,7 +78,7 @@ int32_t sun_listen::do_listen_work(void)
 {
 	fd_set				fds;
 	struct timeval		t_out{1, 0};
-	while (1)
+	while (0)
 	{
 		FD_ZERO(&_rdfds);
 

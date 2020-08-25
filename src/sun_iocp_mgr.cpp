@@ -88,7 +88,7 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 
 int32_t sun_iocp_mgr::iocp_send(int32_t idx)
 {
-
+	return 0;
 }
 
 int32_t sun_iocp_mgr::get_thread_work_num(void)

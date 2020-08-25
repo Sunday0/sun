@@ -138,5 +138,5 @@ int32_t sun_link_mgr::initialize(void)
 
 int32_t sun_link_mgr::destroy(void)
 {
-
+	return 0;
 }

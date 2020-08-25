@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <thread>
-#include <list>
 
 #include "sun_define.h"
 
@@ -14,8 +12,4 @@ class sun_socket
 public:
 	static int32_t sock_env_start(void);
 	static int32_t sock_env_clean(void);
-
-
-
-
 };
