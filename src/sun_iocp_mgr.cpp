@@ -11,6 +11,7 @@
 
 using namespace std;
 
+#pragma warning(disable:4312)
 
 sun_iocp_mgr::sun_iocp_mgr()
 {

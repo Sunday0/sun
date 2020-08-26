@@ -1,6 +1,7 @@
 #include "sun_listen.h"
 
 #include <WinSock2.h>
+#include <ws2tcpip.h>
 #include <algorithm>
 #include <chrono>
 #include "sun_link_mgr.h"
@@ -70,7 +71,7 @@ int32_t sun_listen::init_listen(void)
 		return -1;
 	}
 
-	m_lsn.push_back(sock);
+	m_lsn.push_back(s);
 	return 0;
 }
 
@@ -80,10 +81,10 @@ int32_t sun_listen::do_listen_work(void)
 	struct timeval		t_out{1, 0};
 	while (0)
 	{
-		FD_ZERO(&_rdfds);
+		FD_ZERO(&fds);
 
-		std::for_each(m_lsn.cbegin(), m_lsn.cend(), [](const int32_t& var) {
-				FD_SET(var, &_rdfds);
+		std::for_each(m_lsn.cbegin(), m_lsn.cend(), [&fds](const int32_t& var) {
+				FD_SET(var, &fds);
 		});
 
 		if (0 >= select(0, &fds, NULL, NULL, &t_out))
@@ -93,16 +94,16 @@ int32_t sun_listen::do_listen_work(void)
 
 		for (auto var : m_lsn)
 		{
-			if (!FD_ISSET(var, &_rdfds))
+			if (!FD_ISSET(var, &fds))
 			{
 				continue;
 			}
 
-			auto linkno = do_accept((int32_t)var);
-			if (0 > linkno)
+			auto idx = do_accept((int32_t)var);
+			if (0 < idx)
 			{
 				// join iocp
-				m_p_iocp->iocp_bind();
+				m_p_iocp->iocp_bind(idx);
 			}
 		}
 	}
