@@ -22,7 +22,7 @@ int32_t sun_listen::start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link)
 	m_p_link = p_link;
 
 	// ´´½¨¼àÌısocket
-	if (0 != create_listen_socket())
+	if (0 != init_listen())
 	{
 		return -1;
 	}

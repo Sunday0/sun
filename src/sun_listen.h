@@ -15,7 +15,7 @@ class sun_link_mgr;
 class sun_listen
 {
 private:
-	std::thread					m_th_lsn;
+//	std::thread					m_th_lsn;
 	std::list<int32_t>			m_lsn;
 	uint8_t						m_ip_type{ IPV4 };	// 支持的IP类型，v4 v6
 	sun_iocp_mgr*				m_p_iocp{ nullptr };
