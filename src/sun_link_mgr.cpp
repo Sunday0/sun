@@ -45,25 +45,18 @@ sun_socket_st* sun_link_mgr::alloc_link()
 void sun_link_mgr::free_link(uint32_t link_no)
 {
 	uint16_t idx = link_no & 0x0000FFFF;
-	if (idx >= MAX_LINKS)
+	if (idx < MAX_LINKS)
 	{
-		return ;
+		free_res(idx);
 	}
+}
 
+void sun_link_mgr::close_link(uint32_t link_no)
+{
+	uint16_t idx = link_no & 0x0000FFFF;
+	if (idx < MAX_LINKS)
 	{
-		std::lock_guard<std::mutex> lck(m_lock_mgr);
-		
-		if (m_res_idles < MAX_LINKS)
-		{
-			m_res_arr[m_res_w] = idx;
-
-			m_res_idles++;
-			m_res_w++;
-			if (m_res_w == MAX_LINKS)
-			{
-				m_res_w = 0;
-			}
-		}
+		free_res(idx);
 	}
 }
 
@@ -71,26 +64,12 @@ void sun_link_mgr::free_link(uint32_t link_no)
 bool sun_link_mgr::is_invalid_link(uint32_t link_no)
 {
 	uint16_t idx = link_no & 0x0000FFFF;
-	if (idx >= MAX_LINKS)
+	if (idx < MAX_LINKS)
 	{
 		return false;
 	}
-	else
-	{
-		auto ptr = &m_link_arr[idx];
-		std::lock_guard<std::mutex> lck(m_lock_arr[idx]);
-		if (ptr->link_no != link_no)
-		{
-			return false;
-		}
 
-		if (ptr->slt_flgs == 1)
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return is_invalid_link(link_no, idx);
 }
 
 sun_socket_st* sun_link_mgr::get_link_ptr(int32_t idx)
@@ -139,4 +118,41 @@ int32_t sun_link_mgr::initialize(void)
 int32_t sun_link_mgr::destroy(void)
 {
 	return 0;
+}
+
+void sun_link_mgr::free_res(int32_t idx)
+{
+	std::lock_guard<std::mutex> lck(m_lock_mgr);
+
+	m_res_arr[m_res_w] = idx;
+
+	m_res_idles++;
+	m_res_w++;
+	if (m_res_w == MAX_LINKS)
+	{
+		m_res_w = 0;
+	}
+}
+
+void sun_link_mgr::close_link(uint32_t link_no, int32_t idx)
+{
+	std::lock_guard<std::mutex> lck(m_lock_arr[idx]);
+
+	if (m_link_arr[idx].link_no == link_no)
+	{
+		m_link_arr[idx].slt_flgs = 1;
+	}
+}
+
+bool sun_link_mgr::is_invalid_link(uint32_t link_no, int32_t idx)
+{
+	auto ptr = &m_link_arr[idx];
+	std::lock_guard<std::mutex> lck(m_lock_arr[idx]);
+	if (ptr->link_no != link_no 
+		|| ptr->slt_flgs == 1)
+	{
+		return false;
+	}
+
+	return true;
 }

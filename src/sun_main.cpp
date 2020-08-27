@@ -36,6 +36,7 @@ int32_t sun_server::run()
 
 int32_t sun_server::stop(void)
 {
+	m_lsn_mgr.stop_listen();
 	m_link_mgr.destroy();
 	m_iocp_mgr.stop_service();
 	return 0;

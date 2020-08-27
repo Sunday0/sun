@@ -25,7 +25,6 @@ int32_t sun_iocp_mgr::start_service(sun_link_mgr* p_link)
 {
 	m_p_link = p_link;
 
-	// 创建完成端口
 	m_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (NULL == m_h_iocp)
 	{

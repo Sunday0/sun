@@ -34,13 +34,9 @@ private:
 
 	int32_t do_iocp_work(void);
 
-	// 创建
-	// 绑定
-	// 监听
 	int32_t get_thread_work_num(void);
 	
 	int32_t create_thread_work(void);
-
 	
 	int32_t accept_link(uint64_t key);
 	// 关闭 

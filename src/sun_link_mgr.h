@@ -42,6 +42,9 @@ public:
 	// 释放资源对象
 	void free_link(uint32_t link_no);
 
+	// 软关闭资源对象
+	void close_link(uint32_t link_no);
+
 	// 判断资源对象
 	bool is_invalid_link(uint32_t link_no);
 	
@@ -51,4 +54,8 @@ public:
 public:
 	int32_t initialize(void);
 	int32_t destroy(void);
+
+	void free_res(int32_t idx);
+	void close_link(uint32_t link_no, int32_t idx);
+	bool is_invalid_link(uint32_t link_no, int32_t idx);
 };
