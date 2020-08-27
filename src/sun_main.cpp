@@ -2,13 +2,14 @@
 //
 
 #include "sun_main.h"
+#include "sun_config.h"
 #include <chrono>
 #include <thread>
 using namespace std;
-
-static void sun_sleep(int milliseconds)
+using namespace std::chrono;
+static void sun_sleep(int mseconds)
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+	this_thread::sleep_for(milliseconds(mseconds));
 }
 
 sun_server::sun_server()
