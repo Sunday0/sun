@@ -94,10 +94,10 @@ int32_t sun_link_mgr::initialize(void)
 
 	for (uint16_t i = 0; i < MAX_LINKS; i++)
 	{
-		m_link_arr[i].rx_head.ol_flgs = OLAD_FLAG::RECV;
+		m_link_arr[i].rx_head.ol_flgs = olad_flag::recv;
 
-		m_link_arr[i].tx_head.ol_flgs = OLAD_FLAG::SEND;
-		m_link_arr[i].tx_head.sending = SEND_FLAG::IDLE;
+		m_link_arr[i].tx_head.ol_flgs = olad_flag::send;
+		m_link_arr[i].tx_head.sending = send_flag::idle;
 
 		m_link_arr[i].sock = -1;
 		m_link_arr[i].session_id = 0;
@@ -106,7 +106,7 @@ int32_t sun_link_mgr::initialize(void)
 		m_link_arr[i].seq = 0;
 		m_link_arr[i].link_no = ((uint32_t)m_link_arr[i].seq) << 16 | i;
 
-		m_link_arr[i].slt_flgs = SOFT_FLAG::USING;
+		m_link_arr[i].slt_flgs = soft_flag::shut;
 
 
 		m_res_arr[i] = i;
@@ -140,7 +140,7 @@ void sun_link_mgr::close_link(uint32_t link_no, int32_t idx)
 
 	if (m_link_arr[idx].link_no == link_no)
 	{
-		m_link_arr[idx].slt_flgs = SOFT_FLAG::SHUT;
+		m_link_arr[idx].slt_flgs = soft_flag::shut;
 	}
 }
 
@@ -149,7 +149,7 @@ bool sun_link_mgr::is_invalid_link(uint32_t link_no, int32_t idx)
 	auto ptr = &m_link_arr[idx];
 	std::lock_guard<std::mutex> lck(m_lock_arr[idx]);
 	if (ptr->link_no != link_no 
-		|| ptr->slt_flgs == SOFT_FLAG::SHUT)
+		|| ptr->slt_flgs == soft_flag::shut)
 	{
 		return false;
 	}

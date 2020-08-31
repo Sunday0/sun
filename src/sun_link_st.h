@@ -6,38 +6,40 @@
 
 constexpr auto MAX_SOCK_BUFFER = 8192;
 
+using overlapped = OVERLAPPED;
+
 /*
  *	操作 标志
  */
-enum class OLAD_FLAG : uint32_t
+enum class olad_flag : uint32_t
 {
-	ACCEPT, 
-	RECV, 
-	SEND
+	accept, 
+	recv, 
+	send
 };
 
 /*
  *	发送 标志
  */
-enum class SEND_FLAG : uint32_t
+enum class send_flag : uint32_t
 {
-	IDLE,
-	BUSY,
+	idle,
+	busy,
 };
 
 /*
  *	软关闭 标志
  */
-enum class SOFT_FLAG : uint16_t
+enum class soft_flag : uint16_t
 {
-	USING,
-	SHUT,
+	used,
+	shut,
 };
 
 struct sun_link {
-	OVERLAPPED				iocp_arg;								/*	参数*/
-	OLAD_FLAG				ol_flgs;								/*	标志*/
-	SEND_FLAG				sending;								/*	标志*/
+	overlapped				iocp_arg;								/*	参数*/
+	olad_flag				ol_flgs;								/*	标志*/
+	send_flag				sending;								/*	标志*/
 	int8_t					buffer[MAX_SOCK_BUFFER];				/*	数据缓冲区*/
 	uint16_t				bufsz;									/*	缓冲区大小*/
 	int8_t			 		padding[6];								/*	对齐*/
@@ -52,6 +54,6 @@ struct sun_socket_st {
 	uint32_t				link_no;								/*	作为 iocp 的 key. link_no = seq<<16 | idx */
 	uint16_t				idx;									/*	idx值*/
 	uint16_t				seq;									/*	序号(资源使用次数)*/
-	SOFT_FLAG				slt_flgs;								/*	标志 */
+	soft_flag				slt_flgs;								/*	标志 */
 	int8_t					padding[6];								/*	对齐*/
 };

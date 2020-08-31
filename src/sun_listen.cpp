@@ -7,6 +7,8 @@
 #include "sun_link_mgr.h"
 #include "sun_iocp_mgr.h"
 
+using namespace std::chrono;
+
 sun_listen::sun_listen()
 {
 
@@ -131,14 +133,14 @@ int32_t sun_listen::do_accept(int32_t s)
 		return -1;
 	}
 
-	auto tmp_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	auto tmp_time = system_clock::to_time_t(system_clock::now());
 
 	ptr->rx_head.mtime = tmp_time;
 	ptr->tx_head.mtime = tmp_time;
 	ptr->sock = client;
 	ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
 	ptr->seq++;
-	ptr->slt_flgs = SOFT_FLAG::USING;
+	ptr->slt_flgs = soft_flag::used;
 	return ptr->idx;
 }
 

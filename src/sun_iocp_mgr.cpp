@@ -6,10 +6,10 @@
 #include <thread>
 #include <array>
 
-#include "sun_link_st.h"
 #include "sun_link_mgr.h"
 
 using namespace std;
+using namespace std::chrono;
 
 #pragma warning(disable:4312)
 
@@ -26,7 +26,7 @@ int32_t sun_iocp_mgr::start_service(sun_link_mgr* p_link)
 	m_p_link = p_link;
 
 	m_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-	if (NULL == m_h_iocp)
+	if (nullptr == m_h_iocp)
 	{
 		std::printf("start_service CreateIoCompletionPort 调用失败");
 		return -1;
@@ -121,18 +121,18 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 	while (m_run_flag)
 	{
 		link = nullptr;
-		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (OVERLAPPED**)&link, 1000))
+		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (OVERLAPPED **)(&link), 1000))
 		{
 			// 连接处理
 			switch (link->ol_flgs)
 			{
-			case OLAD_FLAG::ACCEPT:
+			case olad_flag::accept:
 				accept_link(key);
 				break;
-			case OLAD_FLAG::RECV:
+			case olad_flag::recv:
 				recv_done(key, size);
 				break;
-			case OLAD_FLAG::SEND:
+			case olad_flag::send:
 				send_done(key, size);
 				break;
 			default:
@@ -146,12 +146,12 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 			{
 				switch (link->ol_flgs)
 				{
-				case OLAD_FLAG::ACCEPT:
+				case olad_flag::accept:
 					break;
-				case OLAD_FLAG::RECV:
+				case olad_flag::recv:
 					free_link(key);
 					break;
-				case OLAD_FLAG::SEND:
+				case olad_flag::send:
 					close_link(key);
 					break;
 				default:
@@ -190,5 +190,20 @@ int32_t sun_iocp_mgr::send_done(uint64_t key, uint64_t size)
 
 int32_t sun_iocp_mgr::recv_done(uint64_t key, uint64_t size)
 {
+	uint16_t idx = key & 0x0000FFFF;
+	auto link = m_p_link->get_link_ptr(idx);
+
+	link->rx_head.mtime = system_clock::to_time_t(system_clock::now());;
+	link->rx_head.bufsz += (uint16_t)(size);
+
+	// 数据剥离, 放到数据消息队列
+	// 失败的话, 需要断开连接
+
+	// 继续接收数据
+	if (0 > iocp_recv(link))
+	{
+		// 需要关闭sock, 释放资源
+	}
+
 	return 0;
 }
