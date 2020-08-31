@@ -1,3 +1,0 @@
-// the configured options and settings for Tutorial
-#define sun_VERSION_MAJOR @sun_VERSION_MAJOR@
-#define sun_VERSION_MINOR @sun_VERSION_MINOR@

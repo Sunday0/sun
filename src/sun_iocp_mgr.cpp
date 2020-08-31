@@ -77,7 +77,7 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 	wsabuf.buf = (char*)p_socket->rx_head.buffer;
 	memset(&(p_socket->rx_head.iocp_arg), 0, sizeof(p_socket->rx_head.iocp_arg));
 
-	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx_head.iocp_arg, NULL)
+	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx_head.iocp_arg, 0)
 		&& GetLastError() != WSA_IO_PENDING)
 	{
 		return -1;
@@ -124,45 +124,39 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (OVERLAPPED**)&link, 1000))
 		{
 			// 连接处理
-			switch (link->lnk_flgs)
+			switch (link->ol_flgs)
 			{
-			case 0:
+			case OLAD_FLAG::ACCEPT:
 				accept_link(key);
 				break;
-			case 1:
+			case OLAD_FLAG::RECV:
 				recv_done(key, size);
 				break;
-			case 2:
+			case OLAD_FLAG::SEND:
 				send_done(key, size);
 				break;
 			default:
 				break;
 			}
-
-			/*if (size == 0)
-			{
-				if (link->lnk_flgs)
-					close_link(key);
-				else
-					free_link(key);
-			}
-			else
-			{
-				if (link->lnk_flgs)
-					send_done(key, size);
-				else
-					recv_done(key, size);
-			}*/
 		}
 		else 
 		{
 			auto rc = GetLastError();
 			if (rc != WAIT_TIMEOUT && rc != WSA_IO_PENDING && link != NULL) 
 			{
-				if (link->lnk_flgs)
+				switch (link->ol_flgs)
+				{
+				case OLAD_FLAG::ACCEPT:
+					break;
+				case OLAD_FLAG::RECV:
 					free_link(key);
-				else
+					break;
+				case OLAD_FLAG::SEND:
 					close_link(key);
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}

@@ -138,7 +138,7 @@ int32_t sun_listen::do_accept(int32_t s)
 	ptr->sock = client;
 	ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
 	ptr->seq++;
-	ptr->slt_flgs = 0;
+	ptr->slt_flgs = SOFT_FLAG::USING;
 	return ptr->idx;
 }
 

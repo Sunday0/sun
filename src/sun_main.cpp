@@ -2,7 +2,6 @@
 //
 
 #include "sun_main.h"
-#include "sun_config.h"
 #include <chrono>
 #include <thread>
 using namespace std;
