@@ -19,7 +19,7 @@ private:
 	HANDLE					m_h_iocp{ nullptr };						// 完成端口句柄
 	sun_link_mgr*			m_p_link{ nullptr };
 	
-	std::list<std::thread*>	m_list_th_work;								// 工作线程list
+	std::list<std::thread>	m_list_th_work;								// 工作线程list
 public:
 	sun_iocp_mgr();
 	~sun_iocp_mgr();
@@ -44,7 +44,8 @@ private:
 	// 软关闭
 	void close_link(uint64_t key);
 
-	int32_t send_done(uint64_t key, uint64_t size);
+	int32_t send_done(uint64_t link_no, uint64_t size);
 
-	int32_t recv_done(uint64_t key, uint64_t size);
+	int32_t recv_done(uint64_t link_no, uint64_t size);
+	int32_t data_analyze(uint64_t link_no, sun_link* p_rx);
 };

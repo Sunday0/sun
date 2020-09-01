@@ -47,13 +47,12 @@ struct sun_link {
 };
 
 struct sun_socket_st {
-	struct sun_link			rx_head;								/*	接收连接头*/
-	struct sun_link			tx_head;								/*	发送连接头*/
+	struct sun_link			rx;										/*	接收连接头*/
+	struct sun_link			tx;										/*	发送连接头*/
 	int32_t					sock;									/*	SOCKET描述符*/
-	uint32_t				session_id;								/*	当前会话ID*/
 	uint32_t				link_no;								/*	作为 iocp 的 key. link_no = seq<<16 | idx */
 	uint16_t				idx;									/*	idx值*/
 	uint16_t				seq;									/*	序号(资源使用次数)*/
 	soft_flag				slt_flgs;								/*	标志 */
-	int8_t					padding[6];								/*	对齐*/
+	int8_t					padding[2];								/*	对齐*/
 };

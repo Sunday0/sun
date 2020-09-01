@@ -94,20 +94,18 @@ int32_t sun_link_mgr::initialize(void)
 
 	for (uint16_t i = 0; i < MAX_LINKS; i++)
 	{
-		m_link_arr[i].rx_head.ol_flgs = olad_flag::recv;
+		m_link_arr[i].rx.ol_flgs = olad_flag::recv;
 
-		m_link_arr[i].tx_head.ol_flgs = olad_flag::send;
-		m_link_arr[i].tx_head.sending = send_flag::idle;
+		m_link_arr[i].tx.ol_flgs = olad_flag::send;
+		m_link_arr[i].tx.sending = send_flag::idle;
 
 		m_link_arr[i].sock = -1;
-		m_link_arr[i].session_id = 0;
 
 		m_link_arr[i].idx = i;
 		m_link_arr[i].seq = 0;
 		m_link_arr[i].link_no = ((uint32_t)m_link_arr[i].seq) << 16 | i;
 
 		m_link_arr[i].slt_flgs = soft_flag::shut;
-
 
 		m_res_arr[i] = i;
 	}

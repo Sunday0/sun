@@ -7,11 +7,13 @@
 #include <array>
 
 #include "sun_link_mgr.h"
+#include "sun_protocol.h"
+
+#pragma warning(disable:4312)
 
 using namespace std;
 using namespace std::chrono;
 
-#pragma warning(disable:4312)
 
 sun_iocp_mgr::sun_iocp_mgr()
 {
@@ -43,10 +45,9 @@ int32_t sun_iocp_mgr::stop_service()
 {
 	m_run_flag = false;
 
-	for each (auto var in m_list_th_work)
+	for (auto &var : m_list_th_work)
 	{
-		var->join();
-		delete var;
+		var.join();
 	}
 	m_list_th_work.clear();
 
@@ -73,11 +74,11 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 	DWORD	size = 0;
 	DWORD	flags = 0;
 
-	wsabuf.len = MAX_BUFFER - p_socket->rx_head.bufsz;
-	wsabuf.buf = (char*)p_socket->rx_head.buffer;
-	memset(&(p_socket->rx_head.iocp_arg), 0, sizeof(p_socket->rx_head.iocp_arg));
+	wsabuf.len = MAX_BUFFER - p_socket->rx.bufsz;
+	wsabuf.buf = (char*)p_socket->rx.buffer;
+	memset(&(p_socket->rx.iocp_arg), 0, sizeof(p_socket->rx.iocp_arg));
 
-	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx_head.iocp_arg, 0)
+	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx.iocp_arg, 0)
 		&& GetLastError() != WSA_IO_PENDING)
 	{
 		return -1;
@@ -107,7 +108,7 @@ int32_t sun_iocp_mgr::create_thread_work(void)
 	auto num = get_thread_work_num();
 	for (auto i = 0; i < num; i++)
 	{
-		m_list_th_work.push_back(new thread(fun));
+		m_list_th_work.push_back(thread(fun));
 	}
 	return 0;
 }
@@ -121,7 +122,7 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 	while (m_run_flag)
 	{
 		link = nullptr;
-		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (OVERLAPPED **)(&link), 1000))
+		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (overlapped**)(&link), 1000))
 		{
 			// 连接处理
 			switch (link->ol_flgs)
@@ -183,27 +184,83 @@ void sun_iocp_mgr::close_link(uint64_t key)
 
 }
 
-int32_t sun_iocp_mgr::send_done(uint64_t key, uint64_t size)
+int32_t sun_iocp_mgr::send_done(uint64_t link_no, uint64_t size)
 {
 	return 0;
 }
 
-int32_t sun_iocp_mgr::recv_done(uint64_t key, uint64_t size)
+int32_t sun_iocp_mgr::recv_done(uint64_t link_no, uint64_t size)
 {
-	uint16_t idx = key & 0x0000FFFF;
+	uint16_t idx = link_no & 0x0000FFFF;
 	auto link = m_p_link->get_link_ptr(idx);
 
-	link->rx_head.mtime = system_clock::to_time_t(system_clock::now());;
-	link->rx_head.bufsz += (uint16_t)(size);
+	link->rx.mtime = system_clock::to_time_t(system_clock::now());;
+	link->rx.bufsz += (uint16_t)(size);
 
-	// 数据剥离, 放到数据消息队列
-	// 失败的话, 需要断开连接
+	uint16_t off = 0;
+	do
+	{
+		int16_t ret = sun_protocol::analyze(link->rx.buffer + off, link->rx.bufsz);
+		if (0 > ret)
+		{
+			// 校验失败
+			// 需要关闭sock, 释放资源
+			return -1;
+		}
+		else if(0 < ret)
+		{
 
-	// 继续接收数据
+			int32_t m_len = ret;
+			int8_t buf[8192] = { 0 };
+
+			memcpy(buf, link->rx.buffer, ret);
+			off += ret;
+			link->rx.bufsz -= (uint16_t)ret;
+		}
+		else
+		{
+			break;
+		}
+	} while (link->rx.bufsz > 0);
+	
+
+
+	// 解析完毕。继续接收
 	if (0 > iocp_recv(link))
 	{
 		// 需要关闭sock, 释放资源
 	}
+
+	return 0;
+}
+
+int32_t sun_iocp_mgr::data_analyze(uint64_t link_no, sun_link* p_rx)
+{
+	uint16_t off = 0;
+	do
+	{
+		int16_t ret = sun_protocol::analyze(p_rx->buffer + off, p_rx->bufsz);
+		if (0 > ret)
+		{
+			// 校验失败
+			// 需要关闭sock, 释放资源
+			return -1;
+		}
+		else if (0 < ret)
+		{
+			int8_t buf[8192] = { 0 };
+
+			*((uint64_t*)buf) = link_no;
+			memcpy(buf + sizeof(uint64_t), p_rx->buffer + off, ret);
+
+			p_rx->bufsz -= (uint16_t)ret;
+			off			+= ret;
+		}
+		else
+		{
+			break;
+		}
+	} while (p_rx->bufsz > 0);
 
 	return 0;
 }

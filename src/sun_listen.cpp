@@ -135,8 +135,8 @@ int32_t sun_listen::do_accept(int32_t s)
 
 	auto tmp_time = system_clock::to_time_t(system_clock::now());
 
-	ptr->rx_head.mtime = tmp_time;
-	ptr->tx_head.mtime = tmp_time;
+	ptr->rx.mtime = tmp_time;
+	ptr->tx.mtime = tmp_time;
 	ptr->sock = client;
 	ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
 	ptr->seq++;
