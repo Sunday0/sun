@@ -44,7 +44,7 @@ sun_socket_st* sun_link_mgr::alloc_link()
 // 释放资源对象
 void sun_link_mgr::free_link(uint32_t link_no)
 {
-	uint16_t idx = link_no & 0x0000FFFF;
+	uint16_t idx = GET_IDX(link_no);
 	if (idx < MAX_LINKS)
 	{
 		free_res(idx);
@@ -53,7 +53,7 @@ void sun_link_mgr::free_link(uint32_t link_no)
 
 void sun_link_mgr::close_link(uint32_t link_no)
 {
-	uint16_t idx = link_no & 0x0000FFFF;
+	uint16_t idx = GET_IDX(link_no);
 	if (idx < MAX_LINKS)
 	{
 		free_res(idx);
@@ -63,7 +63,7 @@ void sun_link_mgr::close_link(uint32_t link_no)
 // 判断资源对象
 bool sun_link_mgr::is_invalid_link(uint32_t link_no)
 {
-	uint16_t idx = link_no & 0x0000FFFF;
+	uint16_t idx = GET_IDX(link_no);
 	if (idx < MAX_LINKS)
 	{
 		return false;
@@ -72,7 +72,7 @@ bool sun_link_mgr::is_invalid_link(uint32_t link_no)
 	return is_invalid_link(link_no, idx);
 }
 
-sun_socket_st* sun_link_mgr::get_link_ptr(int32_t idx)
+sun_socket_st* sun_link_mgr::get_link_ptr(uint32_t idx)
 {
 	return m_link_arr + idx;
 }
@@ -118,7 +118,7 @@ int32_t sun_link_mgr::destroy(void)
 	return 0;
 }
 
-void sun_link_mgr::free_res(int32_t idx)
+void sun_link_mgr::free_res(uint32_t idx)
 {
 	std::lock_guard<std::mutex> lck(m_lock_mgr);
 
@@ -132,7 +132,7 @@ void sun_link_mgr::free_res(int32_t idx)
 	}
 }
 
-void sun_link_mgr::close_link(uint32_t link_no, int32_t idx)
+void sun_link_mgr::close_link(uint32_t link_no, uint32_t idx)
 {
 	std::lock_guard<std::mutex> lck(m_lock_arr[idx]);
 
@@ -142,7 +142,7 @@ void sun_link_mgr::close_link(uint32_t link_no, int32_t idx)
 	}
 }
 
-bool sun_link_mgr::is_invalid_link(uint32_t link_no, int32_t idx)
+bool sun_link_mgr::is_invalid_link(uint32_t link_no, uint32_t idx)
 {
 	auto ptr = &m_link_arr[idx];
 	std::lock_guard<std::mutex> lck(m_lock_arr[idx]);

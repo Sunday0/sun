@@ -49,13 +49,13 @@ public:
 	bool is_invalid_link(uint32_t link_no);
 	
 	// 获取资源对象地址
-	sun_socket_st* get_link_ptr(int32_t idx);
+	sun_socket_st* get_link_ptr(uint32_t idx);
 
 public:
 	int32_t initialize(void);
 	int32_t destroy(void);
 
-	void free_res(int32_t idx);
-	void close_link(uint32_t link_no, int32_t idx);
-	bool is_invalid_link(uint32_t link_no, int32_t idx);
+	void free_res(uint32_t idx);
+	void close_link(uint32_t link_no, uint32_t idx);
+	bool is_invalid_link(uint32_t link_no, uint32_t idx);
 };

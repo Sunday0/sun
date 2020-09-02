@@ -28,8 +28,10 @@ public:
 	int32_t stop_service();
 
 	int32_t iocp_bind(int32_t idx);
-	int32_t iocp_recv(sun_socket_st * p_socket);
 	int32_t iocp_send(int32_t idx);
+
+private:
+	int32_t iocp_recv(sun_socket_st * p_socket);
 private:
 
 	int32_t do_iocp_work(void);
@@ -38,14 +40,15 @@ private:
 	
 	int32_t create_thread_work(void);
 	
-	int32_t accept_link(uint64_t key);
+	int32_t accept_link(uint32_t link_no);
 	// πÿ±’ 
-	void free_link(uint64_t key);
+	void free_link(uint32_t link_no);
 	// »Ìπÿ±’
-	void close_link(uint64_t key);
+	void close_link(uint32_t link_no);
 
-	int32_t send_done(uint64_t link_no, uint64_t size);
+	int32_t send_done(uint32_t link_no, uint64_t size);
 
-	int32_t recv_done(uint64_t link_no, uint64_t size);
-	int32_t data_analyze(uint64_t link_no, sun_link* p_rx);
+	int32_t recv_done(uint32_t link_no, uint64_t size);
+
+	int32_t data_analyze(uint32_t link_no, sun_link* p_rx);
 };

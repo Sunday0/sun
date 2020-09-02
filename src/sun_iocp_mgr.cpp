@@ -15,6 +15,9 @@ using namespace std;
 using namespace std::chrono;
 
 
+
+
+
 sun_iocp_mgr::sun_iocp_mgr()
 {
 }
@@ -68,6 +71,11 @@ int32_t sun_iocp_mgr::iocp_bind(int32_t idx)
 	return iocp_recv(p_link);
 }
 
+int32_t sun_iocp_mgr::iocp_send(int32_t idx)
+{
+	return 0;
+}
+
 int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 {
 	WSABUF	wsabuf;
@@ -84,11 +92,6 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 		return -1;
 	}
 
-	return 0;
-}
-
-int32_t sun_iocp_mgr::iocp_send(int32_t idx)
-{
 	return 0;
 }
 
@@ -118,23 +121,25 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 	DWORD				size;
 	ULONG_PTR			key;
 	sun_link*			link;
+	uint32_t			link_no;
 
 	while (m_run_flag)
 	{
 		link = nullptr;
 		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (overlapped**)(&link), 1000))
 		{
+			link_no = (uint32_t)key;
 			// 连接处理
 			switch (link->ol_flgs)
 			{
 			case olad_flag::accept:
-				accept_link(key);
+				accept_link(link_no);
 				break;
 			case olad_flag::recv:
-				recv_done(key, size);
+				recv_done(link_no, size);
 				break;
 			case olad_flag::send:
-				send_done(key, size);
+				send_done(link_no, size);
 				break;
 			default:
 				break;
@@ -145,15 +150,16 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 			auto rc = GetLastError();
 			if (rc != WAIT_TIMEOUT && rc != WSA_IO_PENDING && link != NULL) 
 			{
+				link_no = (uint32_t)key;
 				switch (link->ol_flgs)
 				{
 				case olad_flag::accept:
 					break;
 				case olad_flag::recv:
-					free_link(key);
+					free_link(link_no);
 					break;
 				case olad_flag::send:
-					close_link(key);
+					close_link(link_no);
 					break;
 				default:
 					break;
@@ -165,7 +171,7 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::accept_link(uint64_t key)
+int32_t sun_iocp_mgr::accept_link(uint32_t link_no)
 {
 
 	//WSAAccept();
@@ -174,93 +180,79 @@ int32_t sun_iocp_mgr::accept_link(uint64_t key)
 }
 
 // 归还一个连接资源
-void sun_iocp_mgr::free_link(uint64_t key)
+void sun_iocp_mgr::free_link(uint32_t link_no)
 {
 
 }
 // 软关闭
-void sun_iocp_mgr::close_link(uint64_t key)
+void sun_iocp_mgr::close_link(uint32_t link_no)
 {
 
 }
 
-int32_t sun_iocp_mgr::send_done(uint64_t link_no, uint64_t size)
+int32_t sun_iocp_mgr::send_done(uint32_t link_no, uint64_t size)
 {
 	return 0;
 }
 
-int32_t sun_iocp_mgr::recv_done(uint64_t link_no, uint64_t size)
+int32_t sun_iocp_mgr::recv_done(uint32_t link_no, uint64_t size)
 {
-	uint16_t idx = link_no & 0x0000FFFF;
+	auto idx = GET_IDX(link_no);
 	auto link = m_p_link->get_link_ptr(idx);
 
 	link->rx.mtime = system_clock::to_time_t(system_clock::now());;
 	link->rx.bufsz += (uint16_t)(size);
 
-	uint16_t off = 0;
-	do
+	auto off = data_analyze(link_no, &link->rx);
+	if (0 < off)
 	{
-		int16_t ret = sun_protocol::analyze(link->rx.buffer + off, link->rx.bufsz);
-		if (0 > ret)
-		{
-			// 校验失败
-			// 需要关闭sock, 释放资源
-			return -1;
-		}
-		else if(0 < ret)
-		{
-
-			int32_t m_len = ret;
-			int8_t buf[8192] = { 0 };
-
-			memcpy(buf, link->rx.buffer, ret);
-			off += ret;
-			link->rx.bufsz -= (uint16_t)ret;
-		}
-		else
-		{
-			break;
-		}
-	} while (link->rx.bufsz > 0);
-	
-
-
-	// 解析完毕。继续接收
-	if (0 > iocp_recv(link))
+		link->rx.bufsz -= (uint16_t)off;
+		memmove(link->rx.buffer, link->rx.buffer + off, link->rx.bufsz);
+	}
+	else if(0 == off)
 	{
-		// 需要关闭sock, 释放资源
+		off = iocp_recv(link);
+	}
+
+	if (0 > off)
+	{
+		free_link(link_no);
 	}
 
 	return 0;
 }
 
-int32_t sun_iocp_mgr::data_analyze(uint64_t link_no, sun_link* p_rx)
+int32_t sun_iocp_mgr::data_analyze(uint32_t link_no, sun_link* p_rx)
 {
-	uint16_t off = 0;
+	int16_t off = 0;
+	auto	len = p_rx->bufsz;
 	do
 	{
-		int16_t ret = sun_protocol::analyze(p_rx->buffer + off, p_rx->bufsz);
+		auto ret = sun_protocol::analyze(p_rx->buffer + off, len);
 		if (0 > ret)
 		{
 			// 校验失败
 			// 需要关闭sock, 释放资源
 			return -1;
 		}
+		else if (0 == ret)
+		{
+			break;
+		}
 		else if (0 < ret)
 		{
+			/*****************/
+			/** 拷贝数据到消息队列 **/
 			int8_t buf[8192] = { 0 };
 
 			*((uint64_t*)buf) = link_no;
 			memcpy(buf + sizeof(uint64_t), p_rx->buffer + off, ret);
 
-			p_rx->bufsz -= (uint16_t)ret;
-			off			+= ret;
+			/*****************/
+			len -= (uint16_t)ret;
+			off	+= ret;
 		}
-		else
-		{
-			break;
-		}
-	} while (p_rx->bufsz > 0);
+	} while (len > 0);
 
-	return 0;
+	return off;
 }

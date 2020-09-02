@@ -4,6 +4,8 @@
 
 #include <WinSock2.h>
 
+#define GET_IDX(link_no) (link_no & 0x0000FFFF)
+
 constexpr auto MAX_SOCK_BUFFER = 8192;
 
 using overlapped = OVERLAPPED;
