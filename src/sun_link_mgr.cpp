@@ -6,6 +6,7 @@ sun_link_mgr::sun_link_mgr()
 	m_lock_arr = nullptr;
 	m_link_arr = nullptr;
 	m_res_arr = nullptr;
+	m_link_pool = nullptr;
 
 	//发送队列, 后面用chunk 管理 固定长度
 	//list<>						
@@ -77,6 +78,16 @@ sun_socket_st* sun_link_mgr::get_link_ptr(uint32_t idx)
 	return m_link_arr + idx;
 }
 
+sun_men_pool<sun_buff>* sun_link_mgr::get_link_pool(uint32_t idx)
+{
+	return m_link_pool + idx;
+}
+
+sun_link_tuple sun_link_mgr::get_link_tuple(uint32_t idx)
+{
+	return std::make_tuple(m_link_arr + idx, m_lock_arr + idx, m_data_list + idx, m_link_pool + idx);
+}
+
 int32_t sun_link_mgr::initialize(void)
 {
 	std::lock_guard<std::mutex> lck(m_lock_mgr);
@@ -84,9 +95,12 @@ int32_t sun_link_mgr::initialize(void)
 	m_lock_arr = new std::mutex[MAX_LINKS];
 	m_link_arr = new sun_socket_st[MAX_LINKS];
 	m_res_arr = new uint16_t[MAX_LINKS];
+	m_data_list = new std::list<sun_buff*>[MAX_LINKS];
+	m_link_pool = new sun_men_pool<sun_buff>[MAX_LINKS];
+
 
 	m_res_r = 0;
-	m_res_r = 0;
+	m_res_w = 0;
 
 	m_res_idles = MAX_LINKS;
 

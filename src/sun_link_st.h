@@ -3,6 +3,7 @@
 // 定义IOCP 相关的结构体
 
 #include <WinSock2.h>
+#include <cstdint>
 
 #define GET_IDX(link_no) (link_no & 0x0000FFFF)
 
@@ -49,8 +50,8 @@ struct sun_link {
 };
 
 struct sun_socket_st {
-	struct sun_link			rx;										/*	接收连接头*/
-	struct sun_link			tx;										/*	发送连接头*/
+	sun_link				rx;										/*	接收连接头*/
+	sun_link				tx;										/*	发送连接头*/
 	int32_t					sock;									/*	SOCKET描述符*/
 	uint32_t				link_no;								/*	作为 iocp 的 key. link_no = seq<<16 | idx */
 	uint16_t				idx;									/*	idx值*/

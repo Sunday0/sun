@@ -59,7 +59,7 @@ int32_t sun_iocp_mgr::stop_service()
 
 int32_t sun_iocp_mgr::iocp_bind(int32_t idx)
 {
-	sun_socket_st* p_link = m_p_link->get_link_ptr(idx);
+	auto p_link = m_p_link->get_link_ptr(idx);
 
 	// 从资源管理获取link资源信息
 	// 绑定到完成端口
@@ -71,8 +71,66 @@ int32_t sun_iocp_mgr::iocp_bind(int32_t idx)
 	return iocp_recv(p_link);
 }
 
-int32_t sun_iocp_mgr::iocp_send(int32_t idx)
+int32_t sun_iocp_mgr::iocp_send(uint32_t link_no, int8_t* buff, int32_t len)
 {
+	sun_socket_st*				p_link;
+	mutex*						p_mutx;
+	std::list<sun_buff*>*		p_list;
+	sun_men_pool<sun_buff>*		p_pool;
+	int32_t						idx = GET_IDX(link_no);
+
+	std::tie(p_link, p_mutx, p_list, p_pool) = m_p_link->get_link_tuple(idx);
+	
+	{
+		std::lock_guard<std::mutex> lck(*p_mutx);
+
+		if (p_link->link_no != link_no)
+		{
+			return -1;
+		}
+
+		if (p_link->slt_flgs == soft_flag::shut)
+		{
+			return -1;
+		}
+
+		if (p_link->tx.sending == send_flag::busy)
+		{
+			if (p_list->size() > 0)
+			{
+				auto data = p_list->back();
+				if (MAX_BUFFER - data->len >= len)
+				{
+					memcpy(data->mem + data->len, buff, len);
+					data->len += len;
+				}
+				else
+				{
+					// 放入发送队列
+					auto data = p_pool->alloc();
+					data->len = len;
+					memcpy(data->mem, buff, len);
+					p_list->push_back(data);
+				}
+			}
+			else
+			{
+				// 放入发送队列
+				auto data = p_pool->alloc();
+				data->len = len;
+				memcpy(data->mem, buff, len);
+				p_list->push_back(data);
+			}
+		}
+	}
+	
+	// 发送标志
+
+	/*if (0 > iocp_send(p_link))
+	{
+		close_link(link_no);
+	}*/
+
 	return 0;
 }
 
@@ -83,7 +141,7 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 	DWORD	flags = 0;
 
 	wsabuf.len = MAX_BUFFER - p_socket->rx.bufsz;
-	wsabuf.buf = (char*)p_socket->rx.buffer;
+	wsabuf.buf = (char*)(p_socket->rx.buffer + p_socket->rx.bufsz);
 	memset(&(p_socket->rx.iocp_arg), 0, sizeof(p_socket->rx.iocp_arg));
 
 	if (WSARecv(p_socket->sock, &wsabuf, 1, &size, &flags, &p_socket->rx.iocp_arg, 0)
@@ -94,6 +152,25 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 
 	return 0;
 }
+
+int32_t sun_iocp_mgr::iocp_send(sun_socket_st* p_socket)
+{
+	WSABUF	wsabuf;
+	DWORD	size = 0;
+
+	wsabuf.buf = (char*)(p_socket->tx.buffer);
+	wsabuf.len = p_socket->tx.bufsz;
+
+	p_socket->tx.mtime = system_clock::to_time_t(system_clock::now());
+
+	memset(&(p_socket->tx.iocp_arg), 0, sizeof(overlapped));
+	if (WSASend(p_socket->sock, &wsabuf, 1, &size, 0,
+		&(p_socket->tx.iocp_arg), 0) && GetLastError() != WSA_IO_PENDING)
+		return -1;
+	else
+		return 0;
+}
+
 
 int32_t sun_iocp_mgr::get_thread_work_num(void)
 {
@@ -231,8 +308,6 @@ int32_t sun_iocp_mgr::data_analyze(uint32_t link_no, sun_link* p_rx)
 		auto ret = sun_protocol::analyze(p_rx->buffer + off, len);
 		if (0 > ret)
 		{
-			// 校验失败
-			// 需要关闭sock, 释放资源
 			return -1;
 		}
 		else if (0 == ret)

@@ -6,6 +6,7 @@
 
 #include "sun_define.h"
 #include "sun_link_st.h"
+
 /*
 iocp 处理类
 功能 ,iocp 启动, gqcs, 连接接收, 链接绑定，接收(粘包分离)，发送，接收 功能
@@ -28,10 +29,11 @@ public:
 	int32_t stop_service();
 
 	int32_t iocp_bind(int32_t idx);
-	int32_t iocp_send(int32_t idx);
+	int32_t iocp_send(uint32_t link_no, int8_t* buff, int32_t len);
 
 private:
 	int32_t iocp_recv(sun_socket_st * p_socket);
+	int32_t iocp_send(sun_socket_st* p_socket);
 private:
 
 	int32_t do_iocp_work(void);
@@ -49,6 +51,4 @@ private:
 	int32_t send_done(uint32_t link_no, uint64_t size);
 
 	int32_t recv_done(uint32_t link_no, uint64_t size);
-
-	int32_t data_analyze(uint32_t link_no, sun_link* p_rx);
 };
