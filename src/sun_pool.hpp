@@ -49,7 +49,7 @@ public:
 	T* alloc()
 	{
 		T* value = nullptr;
-		pool_guard lck(m_lock_mgr);
+		pool_guard lck(m_mutex);
 
 		if (0 == m_idle_pool.size())
 		{

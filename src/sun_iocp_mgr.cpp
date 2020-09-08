@@ -171,22 +171,17 @@ int32_t sun_iocp_mgr::iocp_send(sun_socket_st* p_socket)
 		return 0;
 }
 
-
-int32_t sun_iocp_mgr::get_thread_work_num(void)
-{
-	SYSTEM_INFO sysTemInfo;
-	GetSystemInfo(&sysTemInfo);
-	return (int32_t)(sysTemInfo.dwNumberOfProcessors << 1);
-}
-
 int32_t sun_iocp_mgr::create_thread_work(void)
 {
 	auto fun = [this]() {
 		do_iocp_work();
 	};
 
-	auto num = get_thread_work_num();
-	for (auto i = 0; i < num; i++)
+	auto num = thread::hardware_concurrency();
+	num = num << 1;
+	if (0 == num) num = 2;
+
+	for (auto i = 0u; i < num; i++)
 	{
 		m_list_th_work.push_back(thread(fun));
 	}

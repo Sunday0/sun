@@ -38,8 +38,6 @@ private:
 
 	int32_t do_iocp_work(void);
 
-	int32_t get_thread_work_num(void);
-	
 	int32_t create_thread_work(void);
 	
 	int32_t accept_link(uint32_t link_no);
@@ -51,4 +49,6 @@ private:
 	int32_t send_done(uint32_t link_no, uint64_t size);
 
 	int32_t recv_done(uint32_t link_no, uint64_t size);
+
+	int32_t data_analyze(uint32_t link_no, sun_link* p_rx);
 };
