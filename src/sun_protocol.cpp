@@ -1,7 +1,7 @@
 #include "sun_protocol.h"
 #include "sun_pack.h"
 
-static uint16_t sun_crc16(const int8_t* data, int32_t len)
+uint16_t sun_protocol::sun_crc16(const int8_t* data, int32_t len)
 {
 	uint16_t	ret		= 0;
 
@@ -23,31 +23,35 @@ static uint16_t sun_crc16(const int8_t* data, int32_t len)
 	return ret;
 }
 
+
 int32_t sun_protocol::analyze(int8_t * buff, uint16_t len)
 {
-	int ret{ -1 };
-	do
+	auto ptr = (sun_pack*)buff;
+	if (len < sizeof(sun_pack))
 	{
-		auto ptr = (sun_pack*)buff;
-		if (len < sizeof(sun_pack))
-		{
-			ret = 0;
-			break;
-		}
+		return 0;
+	}
 
-		if ('$' != ptr->magic)
-		{
-			break;
-		}
+	if ('$' != ptr->magic)
+	{
+		// 协议出错
+		return -1;
+	}
 		
-		auto crc = sun_crc16(buff, len);
-		if (crc != ptr->crc16)
-		{
-			break;
-		}
+	auto crc = sun_crc16(buff, len);
+	if (crc != ptr->crc16)
+	{
+		// 协议出错
+		return -1;
+	}
 
-		ret = (int32_t)(sizeof(sun_pack) + ptr->msg_len);
-	} while (0);
+	if (len < ptr->lenth)
+	{
+		// 数据不够
+		return 0;
+	}
+
+	auto ret = (int32_t)(sizeof(sun_pack) + ptr->lenth);
 
 	return ret;
 }

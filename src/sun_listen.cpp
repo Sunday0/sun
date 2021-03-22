@@ -24,92 +24,61 @@ int32_t sun_listen::start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link)
 	m_p_iocp = p_iocp;
 	m_p_link = p_link;
 
-	// ´´½¨¼àÌısocket
-	if (0 != init_listen())
+	if (m_ip_type & IPV4)
 	{
-		return -1;
+		create_listen(AF_INET);
 	}
 
+	if (m_ip_type & IPV6)
+	{
+		create_listen(AF_INET6);
+	}
 
-	// Æô¶¯¼àÌıÏß³Ì
-	//m_th_lsn = std::move(std::thread([this() { do_listen_work ()}]));
+	// å¯åŠ¨ç›‘å¬çº¿ç¨‹
+	m_thread = std::move(std::thread([this]() { this->do_listen_work(); }));
 
 	return 0;
 }
 
 int32_t sun_listen::stop_listen()
 {
-	// ¹Ø±Õ¼àÌısocket
+	// å…³é—­ç›‘å¬socket
+	for (auto s : m_lsn_sock)
+	{
+		closesocket(s);
+	}
 
-	// ÍÆ³ö¼àÌıÏß³Ì
-	//m_th_lsn.join();
+	// æ¨å‡ºç›‘å¬çº¿ç¨‹
+	m_thread.join();
 
 	return 0;
 
 }
 
-int32_t sun_listen::init_listen(void)
+int32_t sun_listen::create_listen(int32_t af)
 {
-	// ´´½¨¼àÌısocket
-	auto s = sk_create(AF_INET);
-
+	auto s = (int32_t)socket(af, SOCK_STREAM, 0);
 	if (s < 0)
 	{
-		std::printf("sk_create µ÷ÓÃÊ§°Ü");
+		std::printf("create fail");
 		return -1;
 	}
 
-	if (0 > sk_bind(AF_INET, s, PORT))
+	if (0 > sun_bind(AF_INET, s, PORT))
 	{
-		std::printf("sk_bind fail\n");
-		closesocket(s);
-		return -1;
-	}
-	
-	if (0 > sk_listen(s))
-	{
-		std::printf("sk_listen fail\n");
+		std::printf("bind fail\n");
 		closesocket(s);
 		return -1;
 	}
 
-	m_lsn.push_back(s);
-	return 0;
-}
-
-int32_t sun_listen::do_listen_work(void)
-{
-	fd_set				fds;
-	struct timeval		t_out{1, 0};
-	while (0)
+	if (0 > listen(s, MAX_LINKS))
 	{
-		FD_ZERO(&fds);
-
-		std::for_each(m_lsn.cbegin(), m_lsn.cend(), [&fds](const int32_t& var) {
-				FD_SET(var, &fds);
-		});
-
-		if (0 >= select(0, &fds, NULL, NULL, &t_out))
-		{
-			continue;
-		}
-
-		for (auto var : m_lsn)
-		{
-			if (!FD_ISSET(var, &fds))
-			{
-				continue;
-			}
-
-			auto idx = do_accept((int32_t)var);
-			if (0 < idx)
-			{
-				// join iocp
-				m_p_iocp->iocp_bind(idx);
-			}
-		}
+		std::printf("listen fail\n");
+		closesocket(s);
+		return -1;
 	}
 
+	m_lsn_sock.push_back(s);
 	return 0;
 }
 
@@ -125,10 +94,12 @@ int32_t sun_listen::do_accept(int32_t s)
 		return -1;
 	}
 
+	// å‰©ä¸‹çš„ä»£ç åº”è¯¥äº¤ç»™è¿æ¥ç®¡ç†
+
 	auto ptr = m_p_link->alloc_link();
 	if (nullptr == ptr)
 	{
-		// Á¬½ÓÊıÒÑ´ïÉÏÏŞ
+		// è¿æ¥æ•°å·²è¾¾ä¸Šé™
 		closesocket(client);
 		return -1;
 	}
@@ -144,12 +115,8 @@ int32_t sun_listen::do_accept(int32_t s)
 	return ptr->idx;
 }
 
-int32_t sun_listen::sk_create(int32_t af)
-{
-	return (int32_t)WSASocket(af, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-}
 
-int32_t sun_listen::sk_bind(int32_t af, int32_t s, uint16_t port)
+int32_t sun_listen::sun_bind(int32_t af, int32_t s, uint16_t port)
 {
 	struct sockaddr_storage	addr = { 0 };
 	struct sockaddr_in*		sa_in4;
@@ -180,7 +147,38 @@ int32_t sun_listen::sk_bind(int32_t af, int32_t s, uint16_t port)
 	return bind(s, (struct sockaddr*)&addr, nlen);
 }
 
-int32_t sun_listen::sk_listen(int32_t s)
+int32_t sun_listen::do_listen_work(void)
 {
-	return listen(s, SOMAXCONN);
+	fd_set				fds;
+	struct timeval		t_out { 1, 0 };
+	while (0)
+	{
+		FD_ZERO(&fds);
+
+		std::for_each(m_lsn_sock.cbegin(), m_lsn_sock.cend(), [&fds](const int32_t& var) {
+			FD_SET(var, &fds);
+			});
+
+		if (0 >= select(0, &fds, NULL, NULL, &t_out))
+		{
+			continue;
+		}
+
+		for (auto var : m_lsn_sock)
+		{
+			if (!FD_ISSET(var, &fds))
+			{
+				continue;
+			}
+
+			auto idx = do_accept((int32_t)var);
+			if (0 < idx)
+			{
+				// join iocp
+				m_p_iocp->iocp_bind(idx);
+			}
+		}
+	}
+
+	return 0;
 }
