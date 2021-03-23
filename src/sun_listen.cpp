@@ -1,9 +1,13 @@
 #include "sun_listen.h"
 
+#if 1
 #include <WinSock2.h>
 #include <ws2tcpip.h>
+#endif // 0
+
 #include <algorithm>
 #include <chrono>
+
 #include "sun_link_mgr.h"
 #include "sun_iocp_mgr.h"
 
@@ -19,28 +23,34 @@ sun_listen::~sun_listen()
 	
 }
 
-int32_t sun_listen::start_listen(sun_iocp_mgr* p_iocp, sun_link_mgr* p_link)
+int32_t sun_listen::start()
 {
-	m_p_iocp = p_iocp;
-	m_p_link = p_link;
-
+	int ret = -1;
 	if (m_ip_type & IPV4)
 	{
-		create_listen(AF_INET);
+		if (create_listen(AF_INET))
+		{
+			std::printf("create_listen fail AF_INET");
+			return ret;
+		}
 	}
 
 	if (m_ip_type & IPV6)
 	{
-		create_listen(AF_INET6);
+		if (create_listen(AF_INET6))
+		{
+			std::printf("create_listen fail AF_INET6");
+			return ret;
+		}
 	}
 
 	// 启动监听线程
-	m_thread = std::move(std::thread([this]() { this->do_listen_work(); }));
+	m_thread = std::move(std::thread([this]() { this->run_thread(); }));
 
 	return 0;
 }
 
-int32_t sun_listen::stop_listen()
+int32_t sun_listen::stop()
 {
 	// 关闭监听socket
 	for (auto s : m_lsn_sock)
@@ -64,7 +74,7 @@ int32_t sun_listen::create_listen(int32_t af)
 		return -1;
 	}
 
-	if (0 > sun_bind(AF_INET, s, PORT))
+	if (0 > do_bind(AF_INET, s, PORT))
 	{
 		std::printf("bind fail\n");
 		closesocket(s);
@@ -87,36 +97,31 @@ int32_t sun_listen::do_accept(int32_t s)
 	struct sockaddr_storage	addr;
 	int32_t 				addr_len = sizeof(addr);
 
-	auto client = (int32_t)accept(s, (struct sockaddr*)&addr, &addr_len);
-
-	if (client < 0)
-	{
-		return -1;
-	}
+	return (int32_t)accept(s, (struct sockaddr*)&addr, &addr_len);
 
 	// 剩下的代码应该交给连接管理
 
-	auto ptr = m_p_link->alloc_link();
-	if (nullptr == ptr)
-	{
-		// 连接数已达上限
-		closesocket(client);
-		return -1;
-	}
+	//auto ptr = m_p_link->alloc_link();
+	//if (nullptr == ptr)
+	//{
+	//	// 连接数已达上限
+	//	closesocket(client);
+	//	return -1;
+	//}
 
-	auto tmp_time = system_clock::to_time_t(system_clock::now());
+	//auto tmp_time = system_clock::to_time_t(system_clock::now());
 
-	ptr->rx.mtime = tmp_time;
-	ptr->tx.mtime = tmp_time;
-	ptr->sock = client;
-	ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
-	ptr->seq++;
-	ptr->slt_flgs = soft_flag::used;
-	return ptr->idx;
+	//ptr->rx.mtime = tmp_time;
+	//ptr->tx.mtime = tmp_time;
+	//ptr->sock = client;
+	//ptr->link_no = ((uint32_t)ptr->seq) << 16 | ptr->idx;
+	//ptr->seq++;
+	//ptr->slt_flgs = soft_flag::used;
+	//return ptr->idx;
 }
 
 
-int32_t sun_listen::sun_bind(int32_t af, int32_t s, uint16_t port)
+int32_t sun_listen::do_bind(int32_t af, int32_t s, uint16_t port)
 {
 	struct sockaddr_storage	addr = { 0 };
 	struct sockaddr_in*		sa_in4;
@@ -147,37 +152,39 @@ int32_t sun_listen::sun_bind(int32_t af, int32_t s, uint16_t port)
 	return bind(s, (struct sockaddr*)&addr, nlen);
 }
 
-int32_t sun_listen::do_listen_work(void)
+void sun_listen::do_listen(void)
 {
-	fd_set				fds;
+	fd_set				rfds;
 	struct timeval		t_out { 1, 0 };
-	while (0)
-	{
-		FD_ZERO(&fds);
+	
+	FD_ZERO(&rfds);
+	std::for_each(m_lsn_sock.cbegin(), m_lsn_sock.cend(), [&rfds](const int32_t& var) {
+		FD_SET(var, &rfds);
+		});
 
-		std::for_each(m_lsn_sock.cbegin(), m_lsn_sock.cend(), [&fds](const int32_t& var) {
-			FD_SET(var, &fds);
-			});
+	if (0 >= select(0, &rfds, NULL, NULL, &t_out)) {
+		return;
+	}
 
-		if (0 >= select(0, &fds, NULL, NULL, &t_out))
-		{
-			continue;
-		}
-
-		for (auto var : m_lsn_sock)
-		{
-			if (!FD_ISSET(var, &fds))
+	for (auto s : m_lsn_sock)	{
+		if (FD_ISSET(s, &rfds)) {
+			auto c = do_accept((int32_t)s);
+			if (0 < c)
 			{
-				continue;
-			}
-
-			auto idx = do_accept((int32_t)var);
-			if (0 < idx)
-			{
+				// join link
 				// join iocp
-				m_p_iocp->iocp_bind(idx);
 			}
 		}
+	}
+
+	return;
+}
+
+int32_t sun_listen::run_thread(void)
+{
+	while (!m_quit)
+	{
+		do_listen();
 	}
 
 	return 0;

@@ -8,10 +8,6 @@
 
 class sun_server
 {
-private:
-	sun_listen							m_lsn_mgr;
-	sun_link_mgr						m_link_mgr;
-	sun_iocp_mgr						m_iocp_mgr;
 public:
 	sun_server();
 	~sun_server();

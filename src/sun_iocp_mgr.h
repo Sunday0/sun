@@ -4,7 +4,7 @@
 #include <thread>
 #include <list>
 
-#include "sun_define.h"
+#include "sun_conf.h"
 #include "sun_link_st.h"
 
 /*

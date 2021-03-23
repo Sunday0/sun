@@ -5,6 +5,8 @@
 #include "sun_link_st.h"
 #include "sun_pool.hpp"
 
+#include "sun_singleton.hpp"
+
 constexpr auto MAX_BUFFER = 8192;
 
 struct sun_buff
@@ -17,7 +19,7 @@ using sun_link_tuple = std::tuple<sun_socket_st*, std::mutex*, std::list<sun_buf
 
 class sun_iocp;
 
-class sun_link_mgr
+class sun_link_mgr : public sun_singleton<sun_link_mgr>
 {
 private:
 	/*

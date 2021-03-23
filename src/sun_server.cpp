@@ -1,5 +1,7 @@
 
 #include "sun_server.h"
+#include "sun_listen.h"
+
 #include <chrono>
 #include <thread>
 using namespace std;
@@ -22,19 +24,12 @@ sun_server::~sun_server()
 
 int32_t sun_server::start()
 {
-	m_link_mgr.initialize();
-	m_iocp_mgr.start_service(&m_link_mgr);
-	m_lsn_mgr.start_listen(&m_iocp_mgr, &m_link_mgr);
-
-	m_lsn_mgr.do_listen_work();
-
+	sun_listen::get_instance()->start_listen();
 	return 0;
 }
 
 int32_t sun_server::stop(void)
 {
-	m_lsn_mgr.stop_listen();
-	m_link_mgr.destroy();
-	m_iocp_mgr.stop_service();
+	sun_listen::get_instance()->stop_listen();
 	return 0;
 }
