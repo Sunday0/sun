@@ -1,5 +1,5 @@
 
-#include "sun_iocp_mgr.h"
+#include "sun_iocp.h"
 
 #include <WinSock2.h>
 #include <cstdio>
@@ -15,21 +15,16 @@ using namespace std;
 using namespace std::chrono;
 
 
-
-
-
-sun_iocp_mgr::sun_iocp_mgr()
+sun_iocp::sun_iocp()
 {
 }
 
-sun_iocp_mgr::~sun_iocp_mgr()
+sun_iocp::~sun_iocp()
 {
 }
 
-int32_t sun_iocp_mgr::start_service(sun_link_mgr* p_link)
+int32_t sun_iocp::start_service(sun_link_mgr* p_link)
 {
-	m_p_link = p_link;
-
 	m_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (nullptr == m_h_iocp)
 	{
@@ -37,17 +32,13 @@ int32_t sun_iocp_mgr::start_service(sun_link_mgr* p_link)
 		return -1;
 	}
 		
-	m_run_flag = true;
-
-	create_thread_work();
+	create_work_threads();
 
 	return 0;
 }
 
-int32_t sun_iocp_mgr::stop_service()
+int32_t sun_iocp::stop_service()
 {
-	m_run_flag = false;
-
 	for (auto &var : m_list_th_work)
 	{
 		var.join();
@@ -57,21 +48,21 @@ int32_t sun_iocp_mgr::stop_service()
 	return 0;
 }
 
-int32_t sun_iocp_mgr::iocp_bind(int32_t idx)
+int32_t sun_iocp::iocp_bind(int32_t idx)
 {
-	auto p_link = m_p_link->get_link_ptr(idx);
+	//auto p_link = m_p_link->get_link_ptr(idx);
 
 	// 从资源管理获取link资源信息
 	// 绑定到完成端口
-	if (!CreateIoCompletionPort((HANDLE)(p_link->sock), m_h_iocp, (ULONG_PTR)(p_link->link_no), 0))
+	//if (!CreateIoCompletionPort((HANDLE)(p_link->sock), m_h_iocp, (ULONG_PTR)(p_link->link_no), 0))
 	{
 		return -1;
 	}
 
-	return iocp_recv(p_link);
+	//return iocp_recv(p_link);
 }
 
-int32_t sun_iocp_mgr::iocp_send(uint32_t link_no, int8_t* buff, int32_t len)
+int32_t sun_iocp::iocp_send(uint32_t link_no, int8_t* buff, int32_t len)
 {
 	sun_socket_st*				p_link;
 	mutex*						p_mutx;
@@ -134,7 +125,7 @@ int32_t sun_iocp_mgr::iocp_send(uint32_t link_no, int8_t* buff, int32_t len)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
+int32_t sun_iocp::iocp_recv(sun_socket_st* p_socket)
 {
 	WSABUF	wsabuf;
 	DWORD	size = 0;
@@ -153,7 +144,7 @@ int32_t sun_iocp_mgr::iocp_recv(sun_socket_st* p_socket)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::iocp_send(sun_socket_st* p_socket)
+int32_t sun_iocp::iocp_send(sun_socket_st* p_socket)
 {
 	WSABUF	wsabuf;
 	DWORD	size = 0;
@@ -171,10 +162,10 @@ int32_t sun_iocp_mgr::iocp_send(sun_socket_st* p_socket)
 		return 0;
 }
 
-int32_t sun_iocp_mgr::create_thread_work(void)
+void sun_iocp::create_work_threads(void)
 {
 	auto fun = [this]() {
-		do_iocp_work();
+		this->do_iocp_work();
 	};
 
 	auto num = thread::hardware_concurrency();
@@ -185,10 +176,9 @@ int32_t sun_iocp_mgr::create_thread_work(void)
 	{
 		m_list_th_work.push_back(thread(fun));
 	}
-	return 0;
 }
 
-int32_t sun_iocp_mgr::do_iocp_work(void)
+int32_t sun_iocp::do_iocp_work(void)
 {
 	DWORD				size;
 	ULONG_PTR			key;
@@ -243,7 +233,7 @@ int32_t sun_iocp_mgr::do_iocp_work(void)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::accept_link(uint32_t link_no)
+int32_t sun_iocp::accept_link(uint32_t link_no)
 {
 
 	//WSAAccept();
@@ -252,12 +242,12 @@ int32_t sun_iocp_mgr::accept_link(uint32_t link_no)
 }
 
 // 归还一个连接资源
-void sun_iocp_mgr::free_link(uint32_t link_no)
+void sun_iocp::free_link(uint32_t link_no)
 {
 
 }
 // 软关闭
-void sun_iocp_mgr::close_link(uint32_t link_no)
+void sun_iocp::close_link(uint32_t link_no)
 {
 
 }
@@ -267,7 +257,7 @@ int32_t sun_iocp_mgr::send_done(uint32_t link_no, uint64_t size)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::recv_done(uint32_t link_no, uint64_t size)
+int32_t sun_iocp::recv_done(uint32_t link_no, uint64_t size)
 {
 	auto idx = GET_IDX(link_no);
 	auto link = m_p_link->get_link_ptr(idx);
@@ -294,7 +284,7 @@ int32_t sun_iocp_mgr::recv_done(uint32_t link_no, uint64_t size)
 	return 0;
 }
 
-int32_t sun_iocp_mgr::data_analyze(uint32_t link_no, sun_link* p_rx)
+int32_t sun_iocp::data_analyze(uint32_t link_no, sun_link* p_rx)
 {
 	int16_t off = 0;
 	auto	len = p_rx->bufsz;

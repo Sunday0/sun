@@ -1,5 +1,6 @@
 
 #include "sun_socket.h"
+#include <cstdint>
 
 #include <WinSock2.h>
 #pragma comment(lib, "Ws2_32.lib")

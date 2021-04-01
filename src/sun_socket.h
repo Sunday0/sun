@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
-#include "sun_define.h"
-
 /*
 ÍøÂç´¦ÀíÀà
 */
