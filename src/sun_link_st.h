@@ -22,7 +22,7 @@ enum class olad_flag : uint32_t
 };
 
 /*
- *	发送 标志
+ *	发送中 标志
  */
 enum class send_flag : uint32_t
 {
@@ -39,7 +39,7 @@ enum class soft_flag : uint16_t
 	shut,
 };
 
-struct sun_link {
+struct sun_olad {
 	overlapped				iocp_arg;								/*	参数*/
 	olad_flag				ol_flgs;								/*	标志*/
 	send_flag				sending;								/*	标志*/
@@ -49,9 +49,9 @@ struct sun_link {
 	time_t					mtime;									/*	最后一次修改时间*/
 };
 
-struct sun_socket_st {
-	sun_link				rx;										/*	接收连接头*/
-	sun_link				tx;										/*	发送连接头*/
+struct sun_link {
+	sun_olad				rx;										/*	接收连接头*/
+	sun_olad				tx;										/*	发送连接头*/
 	int32_t					sock;									/*	SOCKET描述符*/
 	uint32_t				link_no;								/*	作为 iocp 的 key. link_no = seq<<16 | idx */
 	uint16_t				idx;									/*	idx值*/

@@ -1,5 +1,5 @@
 #include "sun_link_mgr.h"
-#include "sun_iocp_mgr.h"
+#include "sun_iocp.h"
 
 sun_link_mgr::sun_link_mgr()
 {
@@ -22,9 +22,9 @@ sun_link_mgr::~sun_link_mgr()
 }
 
 // 申请资源对象
-sun_socket_st* sun_link_mgr::alloc_link()
+sun_link* sun_link_mgr::alloc_link()
 {
-	sun_socket_st* ptr = nullptr;
+	sun_link* ptr = nullptr;
 
 	std::lock_guard<std::mutex> lck(m_lock_mgr);
 	if (m_res_idles != 0)
@@ -73,7 +73,7 @@ bool sun_link_mgr::is_invalid_link(uint32_t link_no)
 	return is_invalid_link(link_no, idx);
 }
 
-sun_socket_st* sun_link_mgr::get_link_ptr(uint32_t idx)
+sun_link* sun_link_mgr::get_link_ptr(uint32_t idx)
 {
 	return m_link_arr + idx;
 }
@@ -93,7 +93,7 @@ int32_t sun_link_mgr::initialize(void)
 	std::lock_guard<std::mutex> lck(m_lock_mgr);
 
 	m_lock_arr = new std::mutex[MAX_LINKS];
-	m_link_arr = new sun_socket_st[MAX_LINKS];
+	m_link_arr = new sun_link[MAX_LINKS];
 	m_res_arr = new uint16_t[MAX_LINKS];
 	m_data_list = new std::list<sun_buff*>[MAX_LINKS];
 	m_link_pool = new sun_men_pool<sun_buff>[MAX_LINKS];

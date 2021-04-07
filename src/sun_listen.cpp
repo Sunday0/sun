@@ -9,19 +9,9 @@
 #include <chrono>
 
 #include "sun_link_mgr.h"
-#include "sun_iocp_mgr.h"
+#include "sun_iocp.h"
 
 using namespace std::chrono;
-
-sun_listen::sun_listen()
-{
-
-}
-
-sun_listen::~sun_listen()
-{
-	
-}
 
 int32_t sun_listen::start()
 {
@@ -53,7 +43,7 @@ int32_t sun_listen::start()
 int32_t sun_listen::stop()
 {
 	// 关闭监听socket
-	for (auto s : m_lsn_sock)
+	for (auto s : m_sockets)
 	{
 		closesocket(s);
 	}
@@ -88,7 +78,7 @@ int32_t sun_listen::create_listen(int32_t af)
 		return -1;
 	}
 
-	m_lsn_sock.push_back(s);
+	m_sockets.push_back(s);
 	return 0;
 }
 
@@ -158,7 +148,7 @@ void sun_listen::do_listen(void)
 	struct timeval		t_out { 1, 0 };
 	
 	FD_ZERO(&rfds);
-	std::for_each(m_lsn_sock.cbegin(), m_lsn_sock.cend(), [&rfds](const int32_t& var) {
+	std::for_each(m_sockets.cbegin(), m_sockets.cend(), [&rfds](const int32_t& var) {
 		FD_SET(var, &rfds);
 		});
 
@@ -166,7 +156,7 @@ void sun_listen::do_listen(void)
 		return;
 	}
 
-	for (auto s : m_lsn_sock)	{
+	for (auto s : m_sockets)	{
 		if (FD_ISSET(s, &rfds)) {
 			auto c = do_accept((int32_t)s);
 			if (0 < c)

@@ -8,21 +8,22 @@
 
 #include "sun_singleton.hpp"
 
-/*
-网络处理类
-*/
+/**
+ * 监听
+ */
 
 class sun_listen : public sun_singleton<sun_listen>
 {
 private:
-	std::atomic<bool>			m_quit{false};
+	// 支持的IP类型，v4 v6
+	uint8_t						m_ip_type{ IPV4 };	
+	std::atomic<bool>			m_quit{ false };
 	std::thread					m_thread;
-	std::list<int32_t>			m_lsn_sock;
-	uint8_t						m_ip_type{ IPV4 };	// 支持的IP类型，v4 v6
+	std::list<int32_t>			m_sockets;
 private:
-	sun_listen();
+	sun_listen() {}
 public:
-	~sun_listen();
+	~sun_listen() {}
 	int32_t start();
 	int32_t stop();
 private:

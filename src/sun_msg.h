@@ -1,9 +1,6 @@
 #pragma once
 
-#include "sun_pack.h"
-
-
-#pragma pack(1)
+#include <cstdint>
 
 /*
 * 内部消息封装
@@ -13,7 +10,6 @@
 struct sun_msg
 {
 	uint64_t link_no;
-	sun_pack pack;
+	uint32_t lenth;
+	int8_t	 data[0];
 };
-
-#pragma pack()

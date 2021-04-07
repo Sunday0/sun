@@ -2,6 +2,7 @@
 
 #include <WinSock2.h>
 #include <tuple>
+#include "sun_conf.h"
 #include "sun_link_st.h"
 #include "sun_pool.hpp"
 
@@ -15,7 +16,7 @@ struct sun_buff
 	int8_t mem[MAX_BUFFER];
 };
 
-using sun_link_tuple = std::tuple<sun_socket_st*, std::mutex*, std::list<sun_buff*>*, sun_men_pool<sun_buff>*>;
+using sun_link_tuple = std::tuple<sun_link*, std::mutex*, std::list<sun_buff*>*, sun_men_pool<sun_buff>*>;
 
 class sun_iocp;
 
@@ -28,7 +29,7 @@ private:
 	std::mutex						m_lock_mgr;
 	
 	std::mutex*						m_lock_arr;
-	sun_socket_st*					m_link_arr;
+	sun_link*						m_link_arr;
 	uint16_t*						m_res_arr;
 
 	// 发送队列管理池
@@ -46,7 +47,7 @@ public:
 	~sun_link_mgr();
 
 	// 申请资源对象
-	sun_socket_st * alloc_link();
+	sun_link* alloc_link();
 
 	// 释放资源对象
 	void free_link(uint32_t link_no);
@@ -58,7 +59,7 @@ public:
 	bool is_invalid_link(uint32_t link_no);
 	
 	// 获取资源对象地址
-	sun_socket_st* get_link_ptr(uint32_t idx);
+	sun_link* get_link_ptr(uint32_t idx);
 
 
 	sun_men_pool<sun_buff>* get_link_pool(uint32_t idx);
