@@ -13,13 +13,13 @@ static void sun_sleep(int mseconds)
 
 sun_server::sun_server()
 {
-	sun_socket::sock_env_start();
+	sun_socket_env::env_start();
 }
 
 sun_server::~sun_server()
 {
 	stop();
-	sun_socket::sock_env_clean();
+	sun_socket_env::env_clean();
 }
 
 int32_t sun_server::start()

@@ -32,8 +32,8 @@ public:
 	int32_t iocp_send(uint32_t link_no, int8_t* buff, int32_t len);
 
 private:
-	int32_t iocp_recv(sun_socket_st * p_socket);
-	int32_t iocp_send(sun_socket_st* p_socket);
+	int32_t iocp_recv(sun_link* p_socket);
+	int32_t iocp_send(sun_link* p_socket);
 private:
 
 	int32_t do_iocp_work(void);

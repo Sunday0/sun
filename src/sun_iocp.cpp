@@ -125,7 +125,7 @@ int32_t sun_iocp::iocp_send(uint32_t link_no, int8_t* buff, int32_t len)
 	return 0;
 }
 
-int32_t sun_iocp::iocp_recv(sun_socket_st* p_socket)
+int32_t sun_iocp::iocp_recv(sun_link* p_socket)
 {
 	WSABUF	wsabuf;
 	DWORD	size = 0;
@@ -144,7 +144,7 @@ int32_t sun_iocp::iocp_recv(sun_socket_st* p_socket)
 	return 0;
 }
 
-int32_t sun_iocp::iocp_send(sun_socket_st* p_socket)
+int32_t sun_iocp::iocp_send(sun_link* p_socket)
 {
 	WSABUF	wsabuf;
 	DWORD	size = 0;
@@ -182,21 +182,21 @@ int32_t sun_iocp::do_iocp_work(void)
 {
 	DWORD				size;
 	ULONG_PTR			key;
-	sun_link*			link;
+	sun_olad*			olad;
 	uint32_t			link_no;
 
-	while (m_run_flag)
+	while (m_quit)
 	{
-		link = nullptr;
-		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (overlapped**)(&link), 1000))
+		olad = nullptr;
+		if (0 != GetQueuedCompletionStatus(m_h_iocp, &size, &key, (overlapped**)(&olad), 1000))
 		{
 			link_no = (uint32_t)key;
-			// 连接处理
-			switch (link->ol_flgs)
+			// 读写处理
+			switch (olad->ol_flgs)
 			{
-			case olad_flag::accept:
-				accept_link(link_no);
-				break;
+			//case olad_flag::accept:
+			//	accept_link(link_no);
+			//	break;
 			case olad_flag::recv:
 				recv_done(link_no, size);
 				break;
@@ -210,10 +210,10 @@ int32_t sun_iocp::do_iocp_work(void)
 		else 
 		{
 			auto rc = GetLastError();
-			if (rc != WAIT_TIMEOUT && rc != WSA_IO_PENDING && link != NULL) 
+			if (rc != WAIT_TIMEOUT && rc != WSA_IO_PENDING && olad != NULL)
 			{
 				link_no = (uint32_t)key;
-				switch (link->ol_flgs)
+				switch (olad->ol_flgs)
 				{
 				case olad_flag::accept:
 					break;
@@ -252,7 +252,7 @@ void sun_iocp::close_link(uint32_t link_no)
 
 }
 
-int32_t sun_iocp_mgr::send_done(uint32_t link_no, uint64_t size)
+int32_t sun_iocp::send_done(uint32_t link_no, uint64_t size)
 {
 	return 0;
 }

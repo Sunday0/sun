@@ -26,32 +26,19 @@ uint16_t sun_protocol::sun_crc16(const int8_t* data, int32_t len)
 
 int32_t sun_protocol::analyze(int8_t * buff, uint16_t len)
 {
-	auto ptr = (sun_pack*)buff;
-	if (len < sizeof(sun_pack))
+	if (len < sizeof(uint32_t))
 	{
 		return 0;
 	}
 
-	if ('$' != ptr->magic)
+	uint32_t * lenth = (uint32_t*)buff;
+	
+	if (len < *lenth)
 	{
-		// 协议出错
-		return -1;
-	}
-		
-	auto crc = sun_crc16(buff, len);
-	if (crc != ptr->crc16)
-	{
-		// 协议出错
-		return -1;
-	}
-
-	if (len < ptr->lenth)
-	{
-		// 数据不够
 		return 0;
 	}
 
-	auto ret = (int32_t)(sizeof(sun_pack) + ptr->lenth);
+	auto ret = (int32_t)(sizeof(*lenth) + *lenth);
 
 	return ret;
 }
